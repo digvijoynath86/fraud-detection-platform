@@ -1,0 +1,15 @@
+feature_engineering:
+  missing_threshold: 0.95
+
+data_split:
+  test_size: 0.2
+  random_state: 42
+
+xgboost:
+  objective: binary:logistic
+  max_depth: 6
+  learning_rate: 0.1
+  n_estimators: 200
+  subsample: 0.8
+  colsample_bytree: 0.8
+  random_state: 42

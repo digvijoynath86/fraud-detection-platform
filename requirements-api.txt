@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+torch
+numpy
+pandas
+joblib
+scikit-learn
+redis
+pyyaml
+kafka-python

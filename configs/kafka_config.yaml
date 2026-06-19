@@ -1,0 +1,29 @@
+kafka:
+
+  bootstrap_servers:
+
+    - localhost:9092
+
+  topics:
+
+    transactions: transactions
+
+    fraud_alerts: fraud_alerts
+
+  producer:
+
+    transactions_per_second: 100
+
+    customer_pool_size: 100000
+
+  consumer:
+
+    consumer_group: fraud_scoring_group
+
+    auto_offset_reset: earliest
+
+  alert_consumer:
+
+    consumer_group: alert_group
+
+    auto_offset_reset: earliest

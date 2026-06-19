@@ -1,0 +1,270 @@
+schema: '2.0'
+stages:
+  load_data:
+    cmd: python -m src.pipelines.stage_01_load_data
+    deps:
+    - path: data/raw/train_identity.csv
+      hash: md5
+      md5: 8487db5001c8bad139f3318d5d3db416
+      size: 26529680
+    - path: data/raw/train_transaction.csv
+      hash: md5
+      md5: 58b4038d8715f5e11007b826bef00ce7
+      size: 683351067
+    - path: src/ingestion/load_data.py
+      hash: md5
+      md5: 4346ef7aa787b92f202dfc31ccf55b59
+      size: 1342
+    outs:
+    - path: data/interim/merged_dataset.parquet
+      hash: md5
+      md5: 664aaa82e9e95c38e294ac824bf3336d
+      size: 84741706
+  profile_data:
+    cmd: python -m src.pipelines.stage_02_profile_data
+    deps:
+    - path: data/interim/merged_dataset.parquet
+      hash: md5
+      md5: 664aaa82e9e95c38e294ac824bf3336d
+      size: 84741706
+    - path: src/profiling/data_profiler.py
+      hash: md5
+      md5: 9e7e6f0923f8770a75636eb154cbf222
+      size: 1512
+    outs:
+    - path: reports/cardinality.csv
+      hash: md5
+      md5: 5be2daba12500a49cdf542a6cdfeaf10
+      size: 264
+    - path: reports/missing_values.csv
+      hash: md5
+      md5: b8b8f6268f2c2d08c09a9925fd9406ac
+      size: 9995
+    - path: reports/profile_summary.json
+      hash: md5
+      md5: 991fb28e1aa636eb98dea7d574b76436
+      size: 151
+  feature_engineering:
+    cmd: python -m src.pipelines.stage_03_feature_engineering
+    deps:
+    - path: configs/config.yaml
+      hash: md5
+      md5: 1838aa069c773fa2c47095d44f904ddb
+      size: 1013
+    - path: data/interim/merged_dataset.parquet
+      hash: md5
+      md5: 664aaa82e9e95c38e294ac824bf3336d
+      size: 84741706
+    - path: params.yaml
+      hash: md5
+      md5: b5828822bf67bd82b57d4e272b359d05
+      size: 251
+    - path: src/feature_engineering/feature_builder.py
+      hash: md5
+      md5: cdaf92ea53504247540181850fa06e87
+      size: 5434
+    outs:
+    - path: artifacts/feature_metadata.json
+      hash: md5
+      md5: cea535fd07790bb60070fc63605fa199
+      size: 7095
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: c69ecee3515ebead303fbe2090fb1600
+      size: 66325274
+  split_data:
+    cmd: python -m src.pipelines.stage_06_data_split
+    deps:
+    - path: data/processed/velocity_features.parquet
+      hash: md5
+      md5: 5898c625115ceab85fa4301e90053f5f
+      size: 32422286
+    - path: src/feature_engineering/data_splitter.py
+      hash: md5
+      md5: 4a59f0da689b6dc168445b055a288927
+      size: 3536
+    outs:
+    - path: artifacts/split_metadata.json
+      hash: md5
+      md5: e326682da14b32ce462a58edb0de8b6f
+      size: 141
+    - path: data/splits
+      hash: md5
+      md5: 69867ba653e6c4fa85f54b8d1299d14e.dir
+      size: 43069871
+      nfiles: 4
+  train_xgboost:
+    cmd: python -m src.pipelines.stage_08_train_xgboost
+    deps:
+    - path: data/risk_features/X_train_risk.parquet
+      hash: md5
+      md5: 28ef1ff708fb5f801c12e9f4258f538b
+      size: 34988286
+    - path: data/splits/y_train.parquet
+      hash: md5
+      md5: 00f08e1ee1edcb88a78d8d1fd662b40a
+      size: 39289
+    - path: src/training/xgboost_trainer.py
+      hash: md5
+      md5: 94a5494f310b608250d1f967b5ce0595
+      size: 2231
+    outs:
+    - path: models/xgboost_model.pkl
+      hash: md5
+      md5: f51c4db665c1e13bd982b5bffc560661
+      size: 811350
+  evaluate_model:
+    cmd: python -m src.pipelines.stage_09_evaluate_model
+    deps:
+    - path: data/risk_features/X_train_risk.parquet
+      hash: md5
+      md5: 28ef1ff708fb5f801c12e9f4258f538b
+      size: 34988286
+    - path: data/splits/y_test.parquet
+      hash: md5
+      md5: 3d3cda97c502a36de09eba0a2647d564
+      size: 10616
+    - path: models/xgboost_model.pkl
+      hash: md5
+      md5: f51c4db665c1e13bd982b5bffc560661
+      size: 811350
+    - path: src/evaluation/model_evaluator.py
+      hash: md5
+      md5: b1eefac0832b8406145c554ebabd6555
+      size: 6388
+    - path: src/pipelines/stage_09_evaluate_model.py
+      hash: md5
+      md5: d140f44c745494ca5c0a859681b8702e
+      size: 178
+    outs:
+    - path: artifacts/model_metrics.json
+      hash: md5
+      md5: c75246f113df49a41f325d28765f2f7a
+      size: 136
+    - path: artifacts/optimal_threshold.json
+      hash: md5
+      md5: 0915067cfa806fcfda34fb5b582c1c1f
+      size: 120
+    - path: artifacts/threshold_metrics.csv
+      hash: md5
+      md5: a9c7253a4543f42eefe2a6dec8c5074d
+      size: 596
+  business_feature_engineering:
+    cmd: python -m src.pipelines.stage_04_business_feature_engineering
+    deps:
+    - path: data/processed/features.parquet
+      hash: md5
+      md5: c69ecee3515ebead303fbe2090fb1600
+      size: 66325274
+    - path: src/feature_engineering/business_feature_builder.py
+      hash: md5
+      md5: 48a38292719501ba3b9a4e107e43ada5
+      size: 5340
+    outs:
+    - path: data/processed/business_features.parquet
+      hash: md5
+      md5: 41405d4b8ec71081f11cdc67303f8dc6
+      size: 32957698
+  velocity_feature_engineering:
+    cmd: python -m src.pipelines.stage_05_velocity_feature_engineering
+    deps:
+    - path: data/processed/business_features.parquet
+      hash: md5
+      md5: 41405d4b8ec71081f11cdc67303f8dc6
+      size: 32957698
+    - path: src/feature_engineering/velocity_feature_builder.py
+      hash: md5
+      md5: 2f3a1c167a22c996e358d4203a5cd125
+      size: 1997
+    - path: src/pipelines/stage_05_velocity_feature_engineering.py
+      hash: md5
+      md5: 530ed96f6e053635fa2af3d5cdbc50be
+      size: 208
+    outs:
+    - path: data/processed/velocity_features.parquet
+      hash: md5
+      md5: 5898c625115ceab85fa4301e90053f5f
+      size: 32422286
+  risk_feature_engineering:
+    cmd: python -m src.pipelines.stage_07_risk_feature_engineering
+    deps:
+    - path: data/splits/X_test.parquet
+      hash: md5
+      md5: 99f920b0ac9cd0c2df674c87ed70829a
+      size: 8975532
+    - path: data/splits/X_train.parquet
+      hash: md5
+      md5: 89c1ca29e58a14d6176f29a8883bfefe
+      size: 34044434
+    - path: data/splits/y_train.parquet
+      hash: md5
+      md5: 00f08e1ee1edcb88a78d8d1fd662b40a
+      size: 39289
+    - path: src/feature_engineering/risk_feature_builder.py
+      hash: md5
+      md5: 2146a8e334db36132fa26f67e5d0945c
+      size: 3558
+    - path: src/pipelines/stage_07_risk_feature_engineering.py
+      hash: md5
+      md5: d23dbee8586035a63f317121dbc115df
+      size: 212
+    outs:
+    - path: data/risk_features/X_test_risk.parquet
+      hash: md5
+      md5: d12b2042980123d8cd95b90582c8f2f0
+      size: 9213310
+    - path: data/risk_features/X_train_risk.parquet
+      hash: md5
+      md5: 28ef1ff708fb5f801c12e9f4258f538b
+      size: 34988286
+  mlflow_tracking:
+    cmd: python -m src.pipelines.stage_10_mlflow_tracking
+    deps:
+    - path: artifacts/model_metrics.json
+      hash: md5
+      md5: c75246f113df49a41f325d28765f2f7a
+      size: 136
+    - path: artifacts/optimal_threshold.json
+      hash: md5
+      md5: 0915067cfa806fcfda34fb5b582c1c1f
+      size: 120
+    - path: models/xgboost_model.pkl
+      hash: md5
+      md5: f51c4db665c1e13bd982b5bffc560661
+      size: 811350
+    - path: params.yaml
+      hash: md5
+      md5: b5828822bf67bd82b57d4e272b359d05
+      size: 251
+    - path: src/mlflow/mlflow_tracker.py
+      hash: md5
+      md5: 9b244ae8daa94c2f7cbd45f39735543d
+      size: 3142
+    - path: src/pipelines/stage_10_mlflow_tracking.py
+      hash: md5
+      md5: e06870675d125b042749d60aa2f17054
+      size: 183
+  build_synthetic_dataset:
+    cmd: python -m src.pipelines.stage_11_build_synthetic_dataset
+    deps:
+    - path: models/tab_transformer/dataset_builder.py
+      hash: md5
+      md5: 90c23707d6ae875f87108a7e7a1a758e
+      size: 1975
+    - path: src/pipelines/stage_11_build_synthetic_dataset.py
+      hash: md5
+      md5: 440b889b6bb1ce298bf28a7d05915d39
+      size: 255
+    - path: src/services/transaction_service/customer_profile_generator.py
+      hash: md5
+      md5: ddc0f1cc031a3920ac250e20c6ecbec4
+      size: 2008
+    - path: src/services/transaction_service/transaction_generator.py
+      hash: md5
+      md5: 3a4a1501b6c18cb558b5e49b5db5d2ff
+      size: 6157
+    outs:
+    - path: data/processed/synthetic_transactions.parquet
+      hash: md5
+      md5: 007dd25c6ec0be59ea15e32ab18a9497
+      size: 2405630

@@ -1,0 +1,91 @@
+data:
+  transaction_file: data/raw/train_transaction.csv
+  identity_file: data/raw/train_identity.csv
+  interim_dataset: data/interim/merged_dataset.parquet
+
+model:
+
+  model_path: models/xgboost_model.pkl
+
+  max_depth: 6
+
+  learning_rate: 0.1
+
+  n_estimators: 300
+
+
+threshold:
+
+  default: 0.80
+
+
+kafka:
+
+  bootstrap_servers:
+
+    - localhost:9092
+
+  topics:
+
+    transactions: transactions
+
+    fraud_alerts: fraud_alerts
+
+  producer:
+
+    transactions_per_second: 100
+
+    customer_pool_size: 100
+
+  consumer:
+
+    consumer_group: fraud_scoring_group
+
+    auto_offset_reset: earliest
+
+  alert_consumer:
+
+    consumer_group: alert_group
+
+    auto_offset_reset: earliest
+
+
+fraud_detection:
+
+  fraud_probability: 0.03
+
+  high_risk_countries:
+
+    - RU
+
+    - NG
+
+    - KP
+
+
+feature_store:
+
+  customer_history_window: 50
+
+
+transformer:
+
+  sequence_length: 50
+
+  embedding_dim: 128
+
+  num_heads: 8
+
+  num_layers: 4
+
+
+redis:
+
+  host: localhost
+
+  port: 6379
+
+
+sagemaker:
+
+  endpoint_name: fraud-transformer-endpoint

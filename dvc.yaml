@@ -1,0 +1,108 @@
+stages:
+  load_data:
+    cmd: python -m src.pipelines.stage_01_load_data
+    deps:
+    - data/raw/train_identity.csv
+    - data/raw/train_transaction.csv
+    - src/ingestion/load_data.py
+    outs:
+    - data/interim/merged_dataset.parquet
+  profile_data:
+    cmd: python -m src.pipelines.stage_02_profile_data
+    deps:
+    - data/interim/merged_dataset.parquet
+    - src/profiling/data_profiler.py
+    outs:
+    - reports/cardinality.csv
+    - reports/missing_values.csv
+    - reports/profile_summary.json
+  feature_engineering:
+    cmd: python -m src.pipelines.stage_03_feature_engineering
+    deps:
+    - data/interim/merged_dataset.parquet
+    - params.yaml
+    - configs/config.yaml
+    - src/feature_engineering/feature_builder.py
+    outs:
+    - data/processed/features.parquet
+    - artifacts/feature_metadata.json
+  business_feature_engineering:
+    cmd: python -m src.pipelines.stage_04_business_feature_engineering
+    deps:
+      - data/processed/features.parquet
+      - src/feature_engineering/business_feature_builder.py
+    outs:
+      - data/processed/business_features.parquet
+  velocity_feature_engineering:
+    cmd: python -m src.pipelines.stage_05_velocity_feature_engineering
+    deps:
+      - src/feature_engineering/velocity_feature_builder.py
+      - src/pipelines/stage_05_velocity_feature_engineering.py
+      - data/processed/business_features.parquet
+    outs:
+      - data/processed/velocity_features.parquet
+  split_data:
+    cmd: python -m src.pipelines.stage_06_data_split
+    deps:
+    - data/processed/velocity_features.parquet
+    - src/feature_engineering/data_splitter.py
+    outs:
+    - artifacts/split_metadata.json
+    - data/splits
+  risk_feature_engineering:
+    cmd: python -m src.pipelines.stage_07_risk_feature_engineering
+    deps:
+      - src/feature_engineering/risk_feature_builder.py
+      - src/pipelines/stage_07_risk_feature_engineering.py
+      - data/splits/X_train.parquet
+      - data/splits/X_test.parquet
+      - data/splits/y_train.parquet
+    outs:
+      - data/risk_features/X_train_risk.parquet
+      - data/risk_features/X_test_risk.parquet
+  train_xgboost:
+    cmd: python -m src.pipelines.stage_08_train_xgboost
+    deps:
+    - data/risk_features/X_train_risk.parquet
+    - data/splits/y_train.parquet
+    - src/training/xgboost_trainer.py
+    outs:
+    - models/xgboost_model.pkl
+  evaluate_model:
+    cmd: python -m src.pipelines.stage_09_evaluate_model
+    deps:
+    - data/risk_features/X_train_risk.parquet
+    - data/splits/y_test.parquet
+    - models/xgboost_model.pkl
+    - src/evaluation/model_evaluator.py
+    - src/pipelines/stage_09_evaluate_model.py
+    outs:
+    - artifacts/model_metrics.json
+    - artifacts/threshold_metrics.csv
+    - artifacts/optimal_threshold.json
+  mlflow_tracking:
+    cmd: python -m src.pipelines.stage_10_mlflow_tracking
+    deps:
+      - src/mlflow/mlflow_tracker.py
+      - src/pipelines/stage_10_mlflow_tracking.py
+      - models/xgboost_model.pkl
+      - artifacts/model_metrics.json
+      - artifacts/optimal_threshold.json
+      - params.yaml
+  build_synthetic_dataset:
+
+    cmd: python -m src.pipelines.stage_11_build_synthetic_dataset
+
+    deps:
+
+      - models/tab_transformer/dataset_builder.py
+
+      - src/services/transaction_service/customer_profile_generator.py
+
+      - src/services/transaction_service/transaction_generator.py
+
+      - src/pipelines/stage_11_build_synthetic_dataset.py
+
+    outs:
+
+      - data/processed/synthetic_transactions.parquet

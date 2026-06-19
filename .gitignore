@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Mac
+.DS_Store
+
+# MLflow
+mlruns/
+
+# Data
+ieee-fraud-detection/
+ieee-fraud-detection.zip
+
+*.csv
+*.zip
+*.parquet
+
+# Model artifacts (optional)
+models/*.pth
+models/*.pkl
+
+# Kafka
+kafka-data/
+logs/
+
+# Redis
+redis-data/
+
+# Environment
+.env
+
+data/
